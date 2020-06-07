@@ -75,7 +75,7 @@ qpois([?])
 #[?] What does this code do?
 rnorm(n=10, mean=0, sd=1)
 
-#[?] Visualize the Gamma Function by generating 100 samples. Assume that X ~ (alpha = 1, beta= 0.5).
+#[?] Visualize the Gamma Function by generating 100 samples. Assume that X ~ gamma(alpha = 1, beta= 0.5).
 #Hint: use plot(density(X)) to visualize a distribution.
 #Hint: put ? before a function to pull the help file out if you are unsure what paraemters to put in. e.g. ?dnorm
 
