@@ -125,17 +125,19 @@ m1 %*% m2
 
 # Multiply this matrix with a scalar of -1.
 
-# [?] The Linear Regression model follows the following format: y = X\$beta\
+# [?] The Linear Regression model follows the following format: y = X$\beta$ + $\epsilon$
 # where y is a vector of dependent variables of size N
 # X is a matrix of observed independent variables of size N*p , p being the number of independent variables in your model
 # and $\beta$ is a vector of coefficients associated with the independent variable matrix X.
+# and $\epsilon$ is a vector of error terms of each observation.
 # in the linear regression model, the first entry in $\beta$ is always the intercept.
 
 # Assume the researcher is modelling the hours of TV watched in Hong Kong, and they believe that this quantity is likely to be\
 # affected by the number of people in the household.
 # The researcher assumes that there is an intercept of 0, and the coefficient associated with the number of people in the household is 0.5.
 # Suppose the researcher has obtained 10 samples of number of people in their household:
-# [1, 0 , 1, 3, 4, 5,2 , 2 , 2 , 0]
+# [1, 1 , 1, 3, 4, 5,2 , 2 , 2 , 1]
+# Suppose the estimation is perfect, i.e. $\epsilon$ = [0,0,0,0,0,0,0,0,0,0]
 # Estimate the hours of TV watched in Hong Kong among these 10 observations.
 
 # Hint : X should be of dimension 10*2, where the first column is just a vector of 10 zeros. This is essentially what the intercept does in the linear regression model.
@@ -143,6 +145,7 @@ m1 %*% m2
 
 beta = [?]
 X = matrix([?])
+epsilon = [?]
 
 # Transpose of a matrix
 # You can think of the transpose of a matrix as "flipping" the dimensions of a matrix

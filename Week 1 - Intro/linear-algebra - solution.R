@@ -144,12 +144,13 @@ matrix(c(1,2,3,4,5,6),nrow=2, ncol=3, byrow=T)* -1
 
 beta = c(0, 0.5)
 X = matrix(
-  c(rep(0,10),c(1,0,1,3,4,5,2,2,2,0)),
+  c(rep(0,10),c(1,1,1,3,4,5,2,2,2,1)),
   nrow=10,
   ncol=2,
   byrow=T)
+epsilon = rep(0,10)
 
-X %*% beta
+X %*% beta + epsilon
 
 # Transpose of a matrix
 # You can think of the transpose of a matrix as "flipping" the dimensions of a matrix
