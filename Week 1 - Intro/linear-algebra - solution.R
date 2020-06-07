@@ -136,7 +136,7 @@ matrix(c(1,2,3,4,5,6),nrow=2, ncol=3, byrow=T)* -1
 # affected by the number of people in the household.
 # The researcher assumes that there is an intercept of 0, and the coefficient associated with the number of people in the household is 0.5.
 # Suppose the researcher has obtained 10 samples of number of people in their household:
-# [1, 0 , 1, 3, 4, 5,2 , 2 , 2 , 0]
+# [1, 1 , 1, 3, 4, 5,2 , 2 , 2 , 1]
 # Estimate the hours of TV watched in Hong Kong among these 10 observations.
 
 # Hint : X should be of dimension 10*2, where the first column is just a vector of 10 zeros. This is essentially what the intercept does in the linear regression model.
@@ -144,10 +144,10 @@ matrix(c(1,2,3,4,5,6),nrow=2, ncol=3, byrow=T)* -1
 
 beta = c(0, 0.5)
 X = matrix(
-  c(rep(0,10),c(1,1,1,3,4,5,2,2,2,1)),
+  c(rep(0,10),c(1, 1 , 1, 3, 4, 5,2 , 2 , 2 , 1)),
   nrow=10,
   ncol=2,
-  byrow=T)
+  byrow=F)
 epsilon = rep(0,10)
 
 X %*% beta + epsilon
