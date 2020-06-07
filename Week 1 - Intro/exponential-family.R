@@ -31,7 +31,7 @@
 
 
 #d-series functions are density functions. In other words, this gives the output of a probability density function (pdf) of a particular distribution.
-# e.g. dnorm(0,mean= 0, sd =1) gives the density (i.e. Pr[X=0]) given that X ~ N(0,1).
+# e.g. dnorm(0,mean= 0, sd =1) gives the density (i.e. Pr[-inf <= X < inf]) given that X ~ N(0,1).
 
 #[?] What is this quantity?
 dnorm(-2,mean=0,sd=1) 
@@ -39,7 +39,7 @@ dnorm(-2,mean=0,sd=1)
 plot(density(rnorm(100)))
 #Take a look at where -2 is.
 
-#[?] Compute Pr[X=1], given that X~Poisson(2).
+#[?] Compute the density given X=1, given that X~Poisson(2).
 dpois([?])
 
 #p-series functions give the "probability functions", i.e. Pr(X< value of your choice).
