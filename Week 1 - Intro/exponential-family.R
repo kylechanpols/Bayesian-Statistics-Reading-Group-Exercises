@@ -69,7 +69,7 @@ qnorm(.99,  mean = 0, sd = 1)
 #[?] Compute the 75th percentile of X ~ Poisson(Lambda = 1).
 qpois([?])
 
-#r-series functions generate random probabilities that follow a particular distribution.
+#r-series functions generate random quantities that follow a particular distribution.
 # e.g. rnorm(100) - generates 100 random values that~N(0,1).
 
 #[?] What does this code do?
