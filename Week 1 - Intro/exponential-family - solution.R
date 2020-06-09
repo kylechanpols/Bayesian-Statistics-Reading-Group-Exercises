@@ -55,7 +55,8 @@ plot(density(rnorm(100)))
 #[?] What is this quantity? Pr[X>-2] given that X~ N(0,1). n the plot, that is the area under the curve given X>-2.
 pnorm(-2, mean=0,sd=1, lower.tail=F)
 
-#[?] S(t) is said to be the survival function given a random variable t. If t~ exp(lambda= 1), compute S(3).
+#[?] S(t) is said to be the survival function given a random variable t. It is defined as the compliment of the cdf
+#S(t) = 1- F(X <= t) = F(X> t). If t~ exp(lambda= 1), compute S(3).
 pexp(3, 1, lower.tail=F)
 
 
