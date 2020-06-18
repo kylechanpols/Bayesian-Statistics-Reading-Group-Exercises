@@ -82,6 +82,7 @@ post_hpd <- post_plot +
 post_hpd
 
 # E. Juxtapose the Prior and the Posterior plots. How confident are you in finding successful results after the update?
+# Not very confident, the belief of success falls only between 60% - 70%.
 library(gridExtra)
 grid.arrange(pri_plot, post_hpd)  
 
