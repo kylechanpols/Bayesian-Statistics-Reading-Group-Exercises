@@ -112,5 +112,3 @@ mid <- mid[,2:3] #get rid of the extra column.
 # Is your colleague's concerns justified?
 
 # F. Compute the updated mean of the Poisson Distribution, and conclude your findings.
-
-# Upon observing the data, we believe that the frequency of MIDs involving the US between 1945 and 2010 is ~Poisson(3.44).
