@@ -73,7 +73,9 @@ post_plot
 qbeta(c(0.25,.975), a+y,b+n-y)
 
 # D. Plot the Highest Posterior Density (HPD) region.
-bounds <- qbeta(c(0.25,.975), a+y,b+n-y)
+library(HDInterval)
+post_test <- rbeta(1000, a+y, b+n-y)
+bounds <- hdi(post_test)
 
 post_hpd <- post_plot +
   geom_vline(xintercept=bounds[1])+
