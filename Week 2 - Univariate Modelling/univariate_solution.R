@@ -135,7 +135,7 @@ stats::qgamma(c(.025 ,.975),a+y, b+n1)
 
 #Hint: the shape and scale of the gamma is deteremined by shape parameter a and scale parameter 1/b. See : https://en.wikipedia.org/wiki/Gamma_distribution for details.
 
-a<-6; b<-2
+a<-2; b<-1
 prior <- dgamma(theta, a,b)
 plotdat <- data.frame(theta = theta,
                       prior = prior)

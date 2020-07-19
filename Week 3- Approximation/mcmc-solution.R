@@ -119,9 +119,11 @@ PHI[s,] <- phi
 PHI[1000,] #first quantity = posterior mean, second quantity = posterior average variance.
 
 #Part B. Plot a "history" of the Gibbs sampler. Plot the first 5 observations, 20 observations, 100 observations, 1000 observations.
+library(ggplot2)
+PHI <- as.data.frame(PHI)
 PHI$i <- seq(from=1, to =1000, by=1)
 colnames(PHI) <- c("mean", "var","iter")
-PHI <- as.data.frame(PHI)
+
 
 plot5<- ggplot(PHI[1:5,], aes(x=mean, y=var))+
   geom_point()+
