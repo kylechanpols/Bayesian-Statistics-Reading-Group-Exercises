@@ -40,7 +40,7 @@ ggplot(plotdat, aes(x=beta))+
   geom_density()+
   theme_bw()
 # Part B. Suppose we do not observe true X, but observed X hat instead, which has some measurement error.
-# Suppose X hat = X + epislon, where epsilon ~ N(0,1). (i.e. You're over-estimating X.)
+# Suppose X hat = X + epislon, where epsilon ~ N(0,1).
 # Call this beta using X hat beta hat. Acquire an MC sample of 100 beta hats and plot its distribution.
 
 xh <- x + rnorm(100,0,1)
@@ -92,8 +92,8 @@ n <- length(mood)
 
 ###priors (see p.89 of Hoff for what these are)
 mu0 <- 50 #mu not, the mu value for the mean of the prior normal distribution.
-t20 <- sqrt(20) # tau not square, the sigma value for the mean of the prior normal distribution.
-s20 <- .01 #sigma not square, the sigma value associated with the calculation of the beta term for the variance of the prior normal distribution.
+t20 <- sqrt(20) # tau not square, the sigma value for theta, given some uncertainty & data.
+s20 <- .01 #sigma not square, sigma value for the prior normal.
 nu0 <- 1 #nu0 , the term associated with the calculation of the alpha and beta terms for the variance of the prior normal distribution.
 
 ###starting values
@@ -110,7 +110,7 @@ for(s in 2:S){
   
   #generate new 1/sigma^2 value from its full conditional
   nun <- nu0+n
-  s2n <- (nu0*s20)+(n-1)*var.y + n*(mean.y- phi[1])^2 / nun
+  s2n <- (nu0*s20+(n-1)*var.y + n*(mean.y- phi[1])^2) / nun
   phi[2] <- rgamma(1,nun/2, nun*s2n/2)
 
 PHI[s,] <- phi
@@ -128,25 +128,25 @@ colnames(PHI) <- c("mean", "var","iter")
 plot5<- ggplot(PHI[1:5,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot20 <- ggplot(PHI[1:20,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot100 <- ggplot(PHI[1:100,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot1000 <- ggplot(PHI[1:1000,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 library(gridExtra)
@@ -196,7 +196,7 @@ for(s in 2:S){
   currentphi_2 <- PHI[s-1,2]
   
   nun <- nu0+n
-  s2n <- (nu0*s20)+(n-1)*var.y + n*(mean.y- phi[1])^2 / nun
+  s2n <- (nu0*s20+(n-1)*var.y + n*(mean.y- phi[1])^2) / nun
   proposedphi_2 <- phi[2] <- rgamma(1,nun/2, nun*s2n/2)
   
   r_phi <- proposedphi_2/ currentphi_2
@@ -217,25 +217,25 @@ PHI <- as.data.frame(PHI)
 plot5<- ggplot(PHI[1:5,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot20 <- ggplot(PHI[1:20,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot100 <- ggplot(PHI[1:100,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 plot1000 <- ggplot(PHI[1:1000,], aes(x=mean, y=var))+
   geom_point()+
   geom_text(aes(label = iter))+
-  geom_line()+
+  geom_path()+
   theme_bw()
 
 grid.arrange(plot5,plot20,plot100,plot1000)
