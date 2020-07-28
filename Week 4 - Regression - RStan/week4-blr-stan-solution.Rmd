@@ -1,0 +1,146 @@
+---
+title: "Week 5 - Linear Regression, RStan"
+author: "Kyle Chan"
+date: "July 23, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Bayesian Approach to Linear Regression
+Essentially the Bayesian approach to regression modelling is to find parameters of $\beta$ and $\sigma^2$ upon observing $y$ and $\boldsymbol{X}$:
+$$\{y|\boldsymbol{X},\beta,\sigma^2\} \sim multivariate \ normal(\boldsymbol{X}\beta, \sigma^2I)$$ (Hoff, p.512)
+
+And you can recall this was precisely how we sampled $\beta$ last week with MC simulations. Of interest is the vector of $\beta$ quantities and the associated sampling uncertainty $\sigma^2$. Turns out in the Bayesian framework, the prior semiconjugate is defined as:
+$$p(\beta|y, \boldsymbol{X}, \sigma^2) \propto p(\beta|y, \boldsymbol{X}, \sigma^2) * p(\beta)$$
+$$= exp\{\beta^T(\Sigma_0^{-1}\beta_0+X^Ty/\sigma^2) - \frac{1}{2}\beta^T(\Sigma_0^{-1}+X^TX\sigma^2)\beta\}$$
+
+The prior semiconjugate for $\sigma^2$ is the inverse-gamma distribution:
+$$\{\sigma^2|\boldsymbol{y,X,\beta}\} \sim inverse-gamma([v_0+n]/2, [v_0\sigma^2_0+SSR(\beta)]/2)$$
+
+To fit the Linear Regression model in the Bayesian sense, you then construct a Gibbs Sampler roughly as follows:
+1. Update $\beta$:
+  a) Compute $V = Var[\beta|\boldsymbol{y,X},\sigma^{2(s)}]$ and $m = E[\beta|\boldsymbol{y,X},\sigma^{2(s)}]$
+  b) sample a new $\beta^{s+1} \sim multivarte \ normal \ (m,V)$
+2. Update $\sigma^2$:
+  a) compute $SSR(\beta^{(s+1)})$
+  b) sample a new $\sigma^{2(s+1)} \sim inverse-gamma([v_0+n]/2, [v_0\sigma^2_0+SSR(\beta^{(s+1)})]/2)$
+  
+Where $(\beta_0, \Sigma_0)$ and $(v_0, \sigma^2_0)$ are necessary prior parameters to be supplied, just like last week when we constructed the Gibbs for the Normal Distribution.
+
+## Exercise: the mtcars data
+To practice fitting LR, we turn to the trusty `mtcars` dataset. Call `?mtcars` for descriptions of the data. Suppose we want to model gas mileage (mpg), and you think that number of cylinders (cyl), engine displacement (disp), horsepower (hp) and weight (wt) all have to do with gas mileage.\ 
+
+## LR by hand
+Manually write a sequence to fit the above model using the Gibbs Sampler. Report the Beta estimates, SD of Betas, and the 95% HPD.\ 
+Hint: to sample from the Inverse-Gamma distribution, use `rinvgamma()` from the `MCMCpack` package.\ 
+```{r}
+library(MASS)
+library(MCMCpack)
+data(mtcars)
+
+y <- mtcars$mpg #DV
+X <- with(mtcars,
+          cbind(cyl,disp,hp,wt)) #IV
+n_obs = length(y)
+X = cbind(rep(1, n_obs), X) # This is sometimes called a Projection Matrix
+
+n_params = ncol(X) # two covariates and a constant
+
+beta_hat = solve(XtX, t(X) %*% y) # compute this ahead of time cause we'll need it a lot
+XtXprime = solve(t(X) %*% X) # X transpose X inverse
+
+beta = c(0,0,0,0,0) # starting value
+sigma2 = 0 #starting value
+n_iterations = 5000
+
+beta_out = matrix(data=NA, nrow=n_iterations, ncol=n_params)
+sigma_out = matrix(data = NA, nrow = n_iterations, ncol=1)
+for (i in 1:n_iterations){
+  ## Update Beta
+  beta = mvrnorm(n=1, beta_hat, sigma2 * XtXprime) # need the multivariate cause we have three beta
+  #This is on Hoff p.159 without the g parameter.
+  
+  SSR_beta = t(y - X %*% beta) %*% (y - X %*% beta)
+  
+  sigma2 = rinvgamma(1, n_obs/2, SSR_beta/2) #see Hoff p.155 - without the nu_0 parameter.
+  
+  beta_out[i,] = beta
+  sigma_out[i,] = sigma2
+}
+
+#This is akin to SEs under Frequentist Estimation.
+posterior_sds = apply(beta_out, 2, sd)
+
+#HPDI
+library(HDInterval)
+hpdi <- hdi(beta_out) %>% as.matrix()
+
+output <- rbind(colMeans(beta_out), posterior_sds, hpdi)
+output <- t(output)
+rownames(output) <- c("Intercept", "cyl","disp","hp","wt" )
+colnames(output)[1] <- "Mean Beta"
+colnames(output)[3:4] <- c("95% HPDI Lwr", "95% HPDI Upr")
+output
+
+#Compare to lm() output
+summary(
+  lm(mpg~ cyl + disp + hp + wt, mtcars)
+)
+```
+
+#The brms package
+You can also fit Bayesian models easily with the `brms` package. It takes care of the stan code for you so you dont even have to worry about learning stan. Load the package, and read through the help file for `brm()`. To make a brm() work, essentially you should specify the following:
+
+`formula`. This is exactly the same way you would fit the model under `lm()`, `glm()`, `lmer()` or `glmer()`.
+
+`prior`. see `?prior` on how to specify priors. For the linear model, you should at least specify the prior for $\beta$ (`"b"`). For hierarchical models, you would want to set up a prior for $\sigma$ for the random effects.
+
+`chains` - how many Markov-Chains for the resampling?
+
+`cores` - For parallelization. Use `parallel::detectCores()` if you are not sure how many cores your CPU have. Usually I use `parallel::detectCores()-1` so that the computer won't freeze.
+
+`iter` - Number of iterations per MC.
+
+`warmup` - Every MC has a warmup period. In that period the random walk can be "really random" and the samples of the posterior would be quite off from the 'truth'. I usually set this to somewhere between 1/10 - 1/4 of the total number of iterations. The larger this number the better for the MC to achieve stationarity, but it would also take longer for the model to fit.
+
+a. Fit the same model as above using `brm()`
+```{r}
+library(brms)
+
+cars_model <- brm(mpg~ cyl+disp+hp+wt, 
+                  family=gaussian(), data=mtcars,
+                  prior = c(
+                prior(normal(0,10), "b"),
+                  prior(normal(0,50), "Intercept")),
+                 chains=2, cores=5, iter=1000, warmup=100)
+
+```
+
+b. Acquire the 95% Critical Intervals for the $\beta$s.
+```{r}
+summary(cars_model) #under the population-level effects.
+```
+
+c. Plot the posterior distribution of $\beta$s. Are the $\betas$ stationary in the MC? If not, you should run the model longer.
+```{r}
+plot(cars_model)
+```
+
+d. Plot the estimated effects of each of the independent variable.
+```{r}
+plot(conditional_effects(cars_model), ask=F)
+```
+
+More things you can try out in the `brms` package:
+
+Hierarchical Modelling - the inclusion of random effects is the same as in `lme4`.
+
+Correlational Structure - Good for TSCS data, when you need to specify an AR or MA process for your correlation matrix.
+
+Custom Distributions - You can define your own distribution family, and feed it into `brm` using `family=`. Of course this would require a little bit of coding in stan, but it should not be too difficult since you already know R. See <https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html> for an example.
+
+and many more..
+
