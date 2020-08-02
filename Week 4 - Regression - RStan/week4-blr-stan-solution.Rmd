@@ -46,6 +46,7 @@ X <- with(mtcars,
           cbind(cyl,disp,hp,wt)) #IV
 n_obs = length(y)
 X = cbind(rep(1, n_obs), X) # This is sometimes called a Projection Matrix
+XtX = t(X) %*% X
 
 n_params = ncol(X) # two covariates and a constant
 
@@ -76,6 +77,7 @@ posterior_sds = apply(beta_out, 2, sd)
 
 #HPDI
 library(HDInterval)
+library(tidyverse)
 hpdi <- hdi(beta_out) %>% as.matrix()
 
 output <- rbind(colMeans(beta_out), posterior_sds, hpdi)
