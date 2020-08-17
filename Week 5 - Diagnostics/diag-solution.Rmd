@@ -1,0 +1,99 @@
+---
+title: "Diagnostics for Bayesian Models"
+author: "Kyle Chan"
+date: "8/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(brms)
+```
+
+# Basic Bayesian Diagnostics Tools
+This week we will look into some basic diagnostic tools for Bayesian models. We will use the model fitted on the mtcars dataset last time.
+```{r}
+cars_model <- brm(mpg~ cyl+disp+hp+wt, 
+                  family=gaussian(), data=mtcars,
+                  prior = c(
+                prior(normal(0,10), "b"),
+                  prior(normal(0,50), "Intercept")),
+                 chains=2, cores=5, iter=4000, warmup=1000)
+```
+# Sampling
+To check if the sampling on the posterior behaved well, you can plot two kinds of things. One is to check for stationarity in the MCMC chain, the other is to plot joint probability of the posterior draws of coefficients.
+
+## Stationarity Plots
+when you call `plot()` on `brms` objects, the package would have already generated stationarity plots for you to the right of the beta draws.
+
+```{r}
+plot(cars_model)
+```
+You want to be look out for trends in the MCMC chains in the later parts of the chain. For example, if you have 4000 iterations, check if the last 1000 iterations have any trends. If the plot resembles that of the white noise (i.e. entirely random, centering around a stable mean), then we may conclude that the MCMC converged.
+
+## Sampling Plots
+We can plot the posterior sampling results using `pairs()`. It helps us examine if there is multicollinearity problems, or weird looking posterior sample draws under MCMC. The ideal result is that everything looks like a random scatterplot, with no clear relationship between posterior draws of $\beta$s and the $\sigma$. Go ahead and call `pairs()` on our model. 
+```{r}
+pairs(cars_model)
+```
+These are not exactly ideal posterior draws. It appears that the intercept is correlated with the cylinder number (cyl) and displacement (disp). Before we discard our results, the correlation might be telling us something, namely that the effect of these two variables might be more apparent when our guess of the mpg is higher when everything is 0 (as per the definition of the intercept).
+
+
+## Posterior Predictive Check (PPC)
+The idea behind posterior predictive checking is simple: if a model is a good fit then we should be able to use it to generate data that looks a lot like the data we observed. Therefore, when drawing simulated data from the posterior the data should be more or less similar to the observed data.
+
+For models fitted via the `brms` package, you can generate this plot by using `pp_check`. You can also specify the number of simulations with `nsamples`. By default, this function will compare the distributions of the set of hypothetical outcome variables called $y_rep$ and the observed outcome variables $y$.
+
+Now go ahead and generate a simple PPC, with 100 hypothetical samples drawn from the posterior. Did the model fit well?
+```{r}
+pp_check(cars_model, nsamples = 100)
+```
+
+Around 2-5 $y_rep$ draws deviated quite significantly from the observed data. However, overall the model fitted quite OK.
+
+You can also conduct PPCs for test statistics based on the $y_rep$s and $y$, using the `stat` argument in combination with the `type='stat'` argument. For example, to compare the mean, you can use `stat="mean"`. Conduct a PPC on the mean of the outcome variable.
+
+Did the model fit well?
+```{r}
+pp_check(cars_model, type = "stat", nsamples = 100, stat="mean")
+```
+It seems like sometimes the posterior would generate another mean slightly larger than the mean of the observaed value. Other than that, the model seems OK. Perhaps we could be much better if we could adjust our model a little bit (e.g. with more/less independent variables).
+
+Let's conduct one final check of both the mean and the SD. How well did the model fit?
+```{r}
+pp_check(cars_model, type = "stat_2d", nsamples = 100, stat=c("mean","sd"))
+```
+Some $y_rep$ has very high SD. This can be a result of using a small N. Note that the `mtcars` dataset has only `r nrow(mtcars)` observations.
+
+# Hypothesis Testing
+
+## Bayes Factor in brms
+To compare two models, one can compute the Bayes Factor between two models. You can do this by using `bayes_factor`. Note that the model should be fitted with the argument `save_all_pars = TRUE`. For example, you can compare the null model to our fitted model:
+```{r}
+cars_model <- brm(mpg~ cyl+disp+hp+wt, 
+                  family=gaussian(), data=mtcars,
+                  prior = c(
+                prior(normal(0,10), "b"),
+                  prior(normal(0,50), "Intercept")),
+                 chains=2, cores=5, iter=4000, warmup=1000, save_all_pars = TRUE)
+
+null_model <- brm(mpg~ 1, 
+                  family=gaussian(), data=mtcars,
+                 chains=2, cores=5, iter=4000, warmup=1000, save_all_pars = TRUE)
+
+bayes_factor(cars_model, null_model)
+```
+Note that the Bayes Factor, as its closely-related brother BIC, only allows relative comparison of models. That means that models must be nested, and the estimated factor will only tell us the relative comparison between two models, but not the absolute quality of a specific model.
+
+Now compute the Bayes Factor comparing a reduced model with only wt and the full model. Do the variables other than wt give us additional leverage in the explanation?
+```{r}
+small_model <- brm(mpg~ wt, 
+                  family=gaussian(), data=mtcars,
+                 chains=2, cores=5, iter=4000, warmup=1000, save_all_pars = TRUE)
+
+bayes_factor(cars_model, small_model)
+```
+Interestingly, most of the other factors don't matter as much as weight of the car!
+
+
+
