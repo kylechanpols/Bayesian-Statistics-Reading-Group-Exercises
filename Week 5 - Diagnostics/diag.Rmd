@@ -102,7 +102,7 @@ In logistic regression, complete separation refers to the situation where the in
 library(ggplot2)
 trt <- c(rep(0,100), rep(1,100))
 #controls <- sample(0:100, 60, replace=T)
-disease <- trt
+disease <- c(rep(1,100), rep(0,100))
 
 cs <- glm(disease~ trt, family=binomial)
 newdat <- data.frame(trt= seq(from=0,to=1, len=100))
