@@ -121,7 +121,7 @@ Here, the treatment variable has a very large coefficient near 53. If you plot t
 
 Here's how we can get around this issue by using regularizing priors. Regularizing priors are informative priors that specify how $\beta$ should look like. For example, we might be able to specify the prior for $\beta$ in the above case to be smaller, such that the value returned would make much more sense. McElreath also states that a good use of regularizing priors help minimize overfitting.
 
-Fit a Bayesian Logistic Regression Model, specifying the prior of $\beta \sim N(0,5)$ and $\beta_0 \sim N(0,10)$. Plot the distribution of the $\beta$s. What did you find?
+Fit a Bayesian Logistic Regression Model, specifying the prior as $\beta \sim N(0,5)$ and $\beta_0 \sim N(0,10)$. Plot the distribution of the $\beta$s. What did you find?
 
 ```{r}
 dat <- data.frame(disease=disease, trt=trt)
