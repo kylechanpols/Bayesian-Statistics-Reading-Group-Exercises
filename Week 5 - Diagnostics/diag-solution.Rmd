@@ -95,5 +95,42 @@ bayes_factor(cars_model, small_model)
 ```
 Interestingly, most of the other factors don't matter as much as weight of the car!
 
+# Regularization
+One great advantage of Bayesian Statistics over Frequentist Statistics is that you can use regularization priors to specify how the parameters should look like. This helps get around fitting issues such as non-convergence in the MLE.
+
+## Exercise: Getting around the Complete Separation Problem in a Logistic Regression
+In logistic regression, complete separation refers to the situation where the independent variable perfectly predicts the probability of success and failure. For example, in an experiment, everyone in the treated group does not have a disease, but everyone in the control group has the disease. This is emulated in the following code chunk:
+
+```{r}
+library(ggplot2)
+trt <- c(rep(0,100), rep(1,100))
+#controls <- sample(0:100, 60, replace=T)
+disease <- trt
+
+cs <- glm(disease~ trt, family=binomial)
+newdat <- data.frame(trt= seq(from=0,to=1, len=100))
+newdat$disease <- predict(cs, newdata = newdat, type="response")
 
 
+ggplot(newdat, aes(x=trt, y=disease))+
+  geom_line()+
+  geom_jitter()+
+  theme_bw()
+```
+Here, the treatment variable has a very large coefficient near 53. If you plot the logit, you see that the middle line is almost like a step function by the midpoint of trt = 0.5. We also get a warning from glm.fit saying that the algorithm did not converge. This is due to the MLE trying to find the slope at midpoint, but when this slope is a step function, and given that the slope of a vertical line is $\infty$, MLE would not be able to find us the coefficient for the treatment correctly.
+
+Here's how we can get around this issue by using regularizing priors. Regularizing priors are informative priors that specify how $\beta$ should look like. For example, we might be able to specify the prior for $\beta$ in the above case to be smaller, such that the value returned would make much more sense. McElreath also states that a good use of regularizing priors help minimize overfitting.
+
+Fit a Bayesian Logistic Regression Model, specifying the prior of $\beta \sim N(0,5)$ and $\beta_0 \sim N(0,10)$. Plot the distribution of the $\beta$s. What did you find?
+
+```{r}
+dat <- data.frame(disease=disease, trt=trt)
+cs.bayes <- brm(disease~trt, family=binomial(), data=dat,
+                  prior = c(
+                prior(normal(0,5), "b"),
+                  prior(normal(0,10), "Intercept")),
+                chains=2, cores=5, iter=4000, warmup=1000)
+plot(cs.bayes)
+```
+
+This makes much more sense! In the future, you can fine-tune the model fit by using multiple regularizing priors and see which one has the best fit. This is similar to the practice of finding the best learning rate $r$ when fitting classification models in machine learning as McElreath discussed.
