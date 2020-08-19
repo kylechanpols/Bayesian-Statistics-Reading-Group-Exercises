@@ -63,7 +63,7 @@ Let's conduct one final check of both the mean and the SD. How well did the mode
 ```{r}
 pp_check(cars_model, type = "stat_2d", nsamples = 100, stat=c("mean","sd"))
 ```
-Some $y_rep$ has very high SD. This can be a result of using a small N. Note that the `mtcars` dataset has only `r nrow(mtcars)` observations.
+Some $y_rep$s have very high SD. This can be a result of using a small N. Note that the `mtcars` dataset has only `r nrow(mtcars)` observations.
 
 # Hypothesis Testing
 
@@ -117,7 +117,7 @@ ggplot(newdat, aes(x=trt, y=disease))+
   geom_jitter()+
   theme_bw()
 ```
-Here, the treatment variable has a very large coefficient near 53. If you plot the logit, you see that the middle line is almost like a step function by the midpoint of trt = 0.5. We also get a warning from glm.fit saying that the algorithm did not converge. This is due to the MLE trying to find the slope at midpoint, but when this slope is a step function, and given that the slope of a vertical line is $\infty$, MLE would not be able to find us the coefficient for the treatment correctly.
+Here, the treatment variable has a very large coefficient near 53. If you plot the logit, you see that the middle line is almost like a step function by the midpoint of trt = 0.5. We also get a warning from glm.fit saying that the algorithm did not converge. This is due to the MLE trying to find the slope at midpoint, but when this slope is a step function, and given that the slope of a vertical line is undefined (1/0), MLE would not be able to find us the coefficient for the treatment correctly.
 
 Here's how we can get around this issue by using regularizing priors. Regularizing priors are informative priors that specify how $\beta$ should look like. For example, we might be able to specify the prior for $\beta$ in the above case to be smaller, such that the value returned would make much more sense. McElreath also states that a good use of regularizing priors help minimize overfitting.
 
