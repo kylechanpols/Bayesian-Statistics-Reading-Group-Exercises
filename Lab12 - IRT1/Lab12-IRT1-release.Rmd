@@ -1,0 +1,147 @@
+---
+title: "Lab 12- IRT (1): Unidimensional Logistic IRT"
+author: "Kyle Chan"
+date: "October 26, 2020"
+output: html_document
+bibliography: lab12.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+```
+
+# Introduction to the Item Response Theory (IRT)
+The Item Response Theory (IRT) looks at the underlying traits of individuals/ observations. Given a series of responses, we want to discover the individual's trait (broadly defined) from the pattern of responses. It originated from the education literature, where researchers want to identify a person's ability (which is a latent trait) having observed their responses to the test.\ 
+
+In Political Science, one can imagine using IRT to model on latent traits such as political knowledge [@Tsai2017]; Democracy [@Treier2008]; Ideology of Judges [@Martin2002], so on and so forth.
+
+Most IRT models are unidimensional, meaning that we only measure one latent trait from the data. However, there are other IRT models that allow the recovery of multiple latent traits (polytomous IRT models). We will focus on those next week.
+
+# The Rasch Model
+To understand what the IRT model is doing, let's start with a very simple problem of modeling two unknown quantities at the same time. Suppose we only observe an individual's response to a TRUE/FALSE question, so we know that $Y_i \in \{0,1\}$, where $Y_i = 1$ refers to a correctly answered question, and $Y_i = 0$ refers to an incorrect answer. We want to know simultaneously, 1) individual $i$'s ability: $\theta_n$, and controlling for 2) the question's difficulty ($b_i$). We can then model the probability of observing a correct answer with the following model:
+$$P(Y_i = 1 | \theta_n, b_i) = \frac{exp(\theta_n - b_i)}{1 + exp(\theta_n - b_i)}$$
+This is called a Rasch model. The ability parameter $\theta_n$ is non-linearly related to only the item difficulty ($b_i$).\ 
+
+Notice that the model is highly similar to a logistic regression model, except that the parameters are not directly observed.\ 
+
+If one plots the joint probability $P(\theta, b_i)$ against ability $\theta$, one gets a non-linear curve that characterizes the relationship between the probability of observing a correct response and a person's ability ($\theta$). We call this an Item Characteristic Curve (ICC). Figure 1 shows an example of the ICC.\ 
+
+![Figure 1. Item Characteristic Curve (ICC)](icc_example.jpg)
+
+# The Two Parameter Logistic Model (2PL)
+We then generalize the Rasch model by adding one unobserved quantity, $a$, which has a substantive intepretation as the discrimination or slope of the Item Characteristic Curve (ICC). This is called a 2-parameter logistic IRT model (2PL), which comes in the form of:
+$$P(y=1 | \theta, a, b) = \frac{1}{1+exp(-(a\theta + b))}$$
+
+# Adding even more parameters
+One can add even more parameters to the model. For example, people sometimes add a third parameter $g$ to model the probability of randomly answering correctly (guessing). One can even add a fourth element $u$, which has a substantive intepretation as the probability of randomly answering incorrectly. The model then takes the form of:
+$$P(y=1 | \theta, a, b, u , g) = \frac{(u-g)}{1+exp(-(a\theta + b))}$$
+
+# Polytomous IRT models
+Sometimes our variables take on more than one level. When we have ordinal data, we can generalize the Rasch model into the following form: \ 
+$$P(y=k|\theta, \phi) = P(y \geq k) - P(y > k + 1) $$
+This applies to the 3PL and 4PL models too.\ 
+
+# Exercise: Immigration Attitudes expressed by voters in the 2018 Midterm Election
+The 2018 Cooperative Congressional Election Survey (CCES) dataset contains a couple of questions poking at people's immigration attitudes. They asked if people support or oppose a series of policy proposals related to immigration:
+
+`CC18_322a` - Increase spending on border security by $25 billion, including building a wall between the U.S. and Mexico \ 
+
+`CC18_322b`- Provide legal status to children of immigrants who are already in the United States and were brought to the United States by their parents. Provide these children the option of citizenship in 10 years if they meet citizenship requirements and commit no crimes. (DACA). \ 
+
+`CC18_322c_new` - Reduce legal immigration by eliminating the visa lottery and ending family-based migration. \ 
+
+`CC18_322d_new` - Grant legal status to DACA children, spend $25 billion to build the border wall, and reduce legal immigration by eliminating the visa lottery and ending family-based migration \ 
+
+`CC18_322c `- Withhold federal funds from any local police department that does not report to the federal government anyone they identify as an illegal immigrant \ 
+
+`CC18_322f` - Send to prison any person who has been deported from the United States and reenters the United States. \ 
+
+With IRT models, we might be able to gauge people's latent attitudes to immigration (pro-immigration vs. anti-immigration) from this battery of 6 questions.\ 
+
+Download and load the data. The dataset can be acquired at <https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910/DVN/ZSBZ7K>. Fit an appropriate IRT model to estimate people's immigration attitudes. Remember to recode NAs and responses to ensure that all questions are following the same direction (e.g. all "support" answers should point towards a pro-immigration position).
+
+```{r}
+library(readr)
+library(tidyverse)
+##your code here
+```
+
+Load package `ltm` and call `descript()` on the cleaned dataset. Inspect the "Pairwise Associations" table of chi-square correlations. Are the items correlated? If not, then IRT may not be appropriate for this subset of the data.\  
+```{r}
+library(ltm)
+#Descriptives
+##your code here
+#Rasch Model (no control over slope of the ICC)
+
+```
+Basically every item is correlated in our example. This makes sense, as they are all asked on the issue of immigration. We can now move on.\ 
+
+## The Rasch Model
+
+Now fit a Rasch model using `rasch()`. Remember, the Rasch model constrains the discrimination parameter = 1. You can indicate this by setting the constraint argument to a matrix containing K+1 and 1, indicating that we want the K+1 parameter (the discrimination parameter) to be fixed at 1. Once you are done fitting the model, acquire the results using `coef()`. If you set `prob` to `TRUE`, then you would be able to acquire $Pr(Y_i = 1 | \theta=0)$ - i.e. the tendency for the person with an average attitude to immigration opposing to a statement in our case.
+```{r}
+##your code here
+```
+Explore the table. Which statement does the average person tend to (dis)agree the most? the least?
+
+Let's check the fit of the model. You can use `GoF.rasch()` to acquire a bootstrap goodness-of-fit test using a Pearson's $\chi^2$ statistic. Here, the $H_0$ is that the the observed data have been generated under the Rasch model with parameter values of the maximum likelihood estimates $\hat{\theta}$ . To do this, we acquire up to $B$ samples and find how often the generated data follows the MLE.\ 
+
+```{r}
+#your code here
+```
+After 200 bootstraps, we acquired a p-value of .065. This indicates an OK fit but we are quite close to reaching significance at p<.05 and rejecting the $H_0$ that the generated datasets follow the MLE. We may need to fit models with more parameters to control for the reality of the data.\ 
+
+# The 2PL IRT
+The Rasch model can only bring us so far. Let's try fitting a more complicated 2PL model using `ltm()`. You can indicate up to 2 latent variables with `ltm()` like you would with `lm()`. The format is that `dataset ~ latent variables`. For example, if I only want to estimate one latent trait, the formula would then be `dataset~ z1`.
+
+Once you've fitted the model, intepret the Difficulty and the Discrimination parameters.
+```{r}
+#your code here
+```
+
+We can also make inference by comparing the 2PL IRT to the Rasch. You can do this by using `anova()` as usual. Does the 2PL IRT improve model fit?
+```{r}
+#your code here
+```
+That is a very large test statistic! Yes, the 2PL IRT model fitted much better than the Rasch model.\ 
+
+You can also visualize the fitted IRT models by calling `plot()`. Check `plot.ltm()` for details. Of particular interest is the ICC that we talked about earlier in the lab. Plot the ICC of the 2PL model. Which statements do pro-immigration respondents tend to agree? Which statements do they tend to disagree?
+```{r}
+#your code here
+```
+In this example, pro-immigrant respondents tend to oppose to the reduction of legal immigration lottery numbers/ ending family-based migration (`CC18_322c`), tend to oppose to the construction of the wall (`CC18_322a`). They also do not agree with the "package deal" of granting legal stauts to DACA children in exchange for constructing the wall and cutting visa lottery quotas. (`CC18_322d_new`).\ 
+
+Now plot the Item Information Curves (IIC). You can specify this by setting `type="IIC"`. What the IIC shows is how much leverage does each of the items provide conditional on the position of the latent trait. Plot the IIC of the 2PL model and intepret the results.\ 
+```{r}
+#your code here
+```
+It looks like the most of the individual questions could characterize the two poles of immigration attitudes except defunding police departments that do not identify illegal immigrants (CC18_322c). That variable is centered around $\theta_i = 0$, which means that it is better at explaining people who are neutral/ has no clear opinion on immigration.\ 
+
+The black line in the IIC plot is called a Test Information Function (TIF). This is basically a sum of all the IIC, so it gives a general picture as to how well our 2PL model did in explaining people with different values of the latent trait. You can isolate the TIF alone by setting `items= 0 `, i.e. plot no items. How well did our 2PL model do in explaining different values of the immigration attitude trait? \ 
+
+```{r}
+#your code here
+```
+It looks like our model did fairly well, but the model is best at explaining people with moderate positions/ no strong opinion on the issue, since the  mean of the TIF is centered around 0.\ 
+
+One final diagnostics we can do is to test for unidimensionality, i.e. are we really estimating only ONE latent trait? You can do this by calling `unidimTest()` on the fitted IRT model. The $H_0$ is that the model is of unidimensional, i.e. we are really estimating one latent trait only.\ 
+
+Run the Unidimensionality test. Set B to 10 only (you probably want to have a higher B in practice, but the time taken to do that is very long in this large dataset). Intepret the results.\ 
+```{r}
+#your code here
+```
+We are not rejecting the null (i.e. unidimensionality) because p=.0909.\ 
+
+# Acquiring Predictions
+When fitting IRT models of course we want to estimate people's attitudes (i.e. obtaining a copy of $\theta$ for each individual). You can use the `factor.scores()` function to recover the individual-level $\theta_i$ estimates. The individual $\theta_i$ estimates are stored as the `z1` variable under the object `score.dat`. \ 
+
+```{r}
+#your code here
+```
+
+# Optional: Try the 3PL/4PL model out
+
+Now you can repeat the steps covered above to see if fitting a 3PL/ 4PL model helps with model fit. A 3PL model can be fitted by using `tpm()`. The 4PL model is difficult to estimate using MLE. In R, the package `sirt` has an MCMC variant to identify the 4PL model which you can try out in the future as well.
+
+# Reference
+

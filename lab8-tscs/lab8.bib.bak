@@ -1,0 +1,30 @@
+% Encoding: UTF-8
+
+@Article{BaileyKatz2011,
+  author  = {Bailey, Delia Katz, Jonathan N.},
+  title   = {Implementing Panel-Corrected Standard Errors in R: The pcse Package},
+  journal = {Journal of Statistical Software},
+  year    = {2011},
+}
+
+@Article{Alvarez1991,
+  author  = {Alvarez, R Michael Garrett, Geoffrey Lange, Peter},
+  title   = {Government Partisanship, Labor Organization, and Macroeconomic Performance},
+  journal = {American Political Science Review},
+  year    = {1991},
+  volume  = {85},
+  number  = {2},
+  pages   = {539-556},
+}
+
+@Article{Beck1993,
+  author  = {Beck, Nathaniel Katz, Jonathan N. Alvarez, R. Michael Garrett, Geoffrey Lange, Peter},
+  title   = {Government Partisanship, Labor Organization, and Macroeconomic Performance: A Corrigendum},
+  journal = {American Political Science Review},
+  year    = {1993},
+  volume  = {87},
+  number  = {4},
+  pages   = {943-948},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

@@ -1,0 +1,118 @@
+---
+title: "Lab 13- IRT (2): Polytomous IRT"
+author: "Kyle Chan"
+date: "November 2, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+```
+
+# Polytomous IRT models
+Remember from last week, the logistic IRT models can be generalized to accommodate to ordinal data and/or estimating more than one latent traits. This week we will look into some examples of these generalized models and how to fit them in R.\ 
+
+# Generalized Partial Credit Model (GPCM)
+The Generalized Partial Credit Model is an extension of the Rasch model. It takes the following form:
+$$P(y=k|\boldsymbol{\theta}, \phi) = \frac{exp(ak_k (\boldsymbol{a'\theta})+d_k)}{\sum^k_{j=1}exp(ak_k(\boldsymbol{a'\theta})+d_k)}$$
+So now instead of estimating one $\theta_i$, we need to estimate a vector $\boldsymbol{\theta}$. The same thing applies to the discrimination parameter $\alpha_i$. We also have a new coefficient $ak_k$, which is treated as fixed and ordered from 0 to (k-1). This indicates each successive category is scored equally. They are also known as "scoring coefficients".\ 
+
+# The Graded Response Model (GRM)
+The GRM models on the difference of cumulative probabilities. For example, the probability of observing a response in category k to the next highest category is defined as:
+$$P_{ki}(\theta) = P^*_{ki}(\theta) - P^*_{ki+1} (\theta),$$
+$$P^*_{ki}(\theta) = \frac{1}{1+exp(-Da_i(\theta - b_{ki}))}$$
+where $a_i$ is the usual discrimination factor, and $D$ is a scaling factor usually set to 1.7.
+
+# The Nominal Response Model (NRM)
+The NRM can be used to model completely nominal items, multiple choice items, partially ordered items, and completely ordered items. It is given as:
+$$P_{ix}(\theta) = \frac{exp(a_{ix}\theta) + c_{ix}}{\sum^m_{x=1}exp(a_{ix}\theta + c_{ix})}$$
+Where x is an index variable for category $x \in X$, $a_{iz}$ is the category slope for each of the categories (~discrimination parameters), and $c_{ix}$ are category intercept parameters (~difficulty parameters).\ 
+
+## Exercise: Attitudes to Science, 1992
+Load the `science.csv` with the link given. It is a dataset from the Consumer Protection and Perceptions of Science and Technology section of the 1992 Euro-Barometer Survey (Karlheinz & Melich, 1992) based on a sample from England.\ 
+
+The questions asked are given below:\ 
+
+`Comfort`: Science and technology are making our lives healthier, easier and more comfortable.\ 
+
+`Environment`: Scientific and technological research cannot play an important role in protecting the environment and repairing it.\ 
+
+`Work`: The application of science and new technology will make work more interesting.\ 
+
+`Future`: Thanks to science and technology, there will be more opportunities for the future generations.\ 
+
+`Technology`: New technology does not depend on basic scientific research.\ 
+
+`Industry`: Scientific and technological research do not play an important role in industrial development.\ 
+
+`Benefit`: The benefits of science are greater than any harmful effect it may have.\ 
+
+All of the items are measured on a four-point scale with response categories "1=strongly disagree", "2=disagree to some extent", "3=agree to some extent" and "4=strongly agree".\ 
+
+Load the data and call `head()` to inspect the structure of the data.\ 
+```{r}
+science <- read.csv("https://raw.githubusercontent.com/okanbulut/myrfunctions/master/science.csv", header=TRUE)
+head(science)
+```
+
+# Using mirt
+We will be using the `mirt` package to fit polytomous IRT models. Install and load the package.\ 
+
+`mirt` has its own model syntax. Call `?mirt.model` to take a look at the synatx. You can indicate multiple latent variables to be estimated by different combinations of features. For example, if we have 10 features, we can write `z1 = 1-10` to indicate that latent trait `z1` should be estimated with all features. If we also want to estimate another latent trait `z2` with only the first 5 features, then you write: `z1 = 1-10 z2 = 1-5`, so on and so forth. There are other operators that you can use to constrain groups, so I highly recommend taking a look at the model syntax.\ 
+
+For the purpose of our exercise, let's estimate only one latent trait "like.science" with all the features for now:
+```{r}
+library(mirt)
+model1 <- "like.science = 1-7"
+mod.pcm1 <- mirt(data = science,
+                 model = model1,
+                 itemtype="gpcm",
+                 SE=TRUE,
+                 verbose=FALSE)
+coefs.pcm1 <- coef(mod.pcm1, IRTpars=TRUE, simplify=TRUE)
+items.pcm1 <- as.data.frame(coefs.pcm1$items)
+```
+
+Because the item in the science data set have four response categories, the Partial Credit Model estimates three threshold parameters (b1, b2, b3) for each item.
+
+You can fit other polytomous IRT models by specifying `itemtype = `. For example, to fit a GRM:
+```{r}
+mod.grm1 <- mirt(?)
+coefs.grm1 <- coef(?)
+items.grm1 <- as.data.frame(?)
+```
+
+The high values in some of the parameters could be a sign of poor model fit. If this happens, you may want to try different MIRT models unitl you have acquired a good fit. For example, to fit the Nominal Response Model:
+```{r}
+##your code here
+```
+
+# Visualizing Polytomous IRT Models
+You can also visualize polytomous IRT models using `plot()`. For example, to plot the results from the GPCM:
+```{r}
+plot(mod.pcm1, type="trace", which.items=c(4,5), par.settings = simpleTheme(lty=1:4,lwd=2),
+     auto.key=list(points=FALSE,lines=TRUE, columns=4))
+```
+What this plot shows is the Option Characteristic Curves (OCC). This is quite similar to the ICC, except that each curve represents the probability of selecting a particular response option as a function of the latent trait. For example, For those liking science (high $\theta$), they tend to say that they agree with the statement that science brings more opportunity to the future, and the opposite is true for those who hates science (low $\theta$). \ 
+
+One may also plot the IIF to examine how much information is best explained given the location of $\theta$:
+```{r}
+plot(mod.pcm1, type="infotrace", which.items = c(4,5), par.settings = simpleTheme(lwd=2))
+```
+It seems like the 'Future' item is much more helpful than the 'Technology' item in providing information on the different $\theta$s. \ 
+
+Similar to the unidimesional case, you may also plot the TIF:
+```{r}
+plot(mod.pcm1, type="info", which.items = c(4,5), par.settings = simpleTheme(lwd=2))
+```
+It appears that the items helped us identify two clusters of $\theta$s. The items are more helpful in explaining people who dislike science ($-\theta$), however.\ 
+
+With this dataset, think about whether there could be two latent traits that can be modeled. Try modelling on two traits and visualize the results. Do the results make sense? What is the model performance?\ 
+Hint: For 2-dimesional models, you need to use `itemplot()` instead of `plot()` for visualization.\ 
+
+```{r}
+##your code here
+```
+
+
+

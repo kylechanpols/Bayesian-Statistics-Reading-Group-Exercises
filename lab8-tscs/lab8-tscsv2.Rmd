@@ -1,0 +1,250 @@
+---
+title: "Lab 8- Dealing with Time Series Cross-Sectional Data"
+author: "Kyle Chan, with code adapted from Michael Meffert"
+date: "September 28, 2020"
+output: html_document
+bibliography: lab8.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=F, warning=F, cache=T)
+```
+
+# Time Series Cross-Sectional Data
+TSCS refers to a dataset format that is both a time series and cross-sectional. Therefore, your dataset has repeated observations over time (time series), but you also collect these observations across different individuals (cross-sectional). Examples of this kind of data include: Election Data, or repeated measures survey design.\ 
+
+Because this type of dataset has both the time-varying and individual-varying components, traditional OLS methods will not be able to control for 1) Autocorrelation (i.e. correlation of the variables for the same individual over-time); and 2) Hierarchical structure of the data (e.g. you have repeated observations for the same individual, so the data should be clustered within individual). In this sense, the assumption of exogeneity of errors is often violated.
+
+Note that TSCS data is different from panel data. Panel data refers to the type of dataset where you have repeated observations in different times (e.g. you have an entry for every year between 1990-2020), while TSCS data refers to repeated observations in different **time periods** (e.g. Repeated observation in every wave of a survey, each wave measures data over 4 years). This means that panel data regressors (e.g. the first difference, fixed effects estimator, etc.) are also inappropriate for TSCS data.
+
+In this week's lab we'll look into two alternatives that can help us model TSCS data: Panel-Corrected Standard Errors (PCSE), and multi-level modeling strategies for TSCS data.
+
+
+## Panel-Corrected Standard Errors (PCSE)
+A critical assumption of TSCS models is that of "pooling", i.e. all units are characterized by the same regression equation at all points in time. E.g. :
+$$y_{i,t} = x_{i,t}\beta + \epsilon_{i,t}; \ i=1,...,N\ ; \ t = 1, ..., T$$
+where $x_{i,t}$ is a vector of one or more k independent variables, and observations are indexed by unit (i) and time (t).
+
+In the standard OLS framework, sampling variability is given by:
+$$Cov(\hat{\beta}) = \boldsymbol{(X^TX)^{-1}\{X^T\Omega X\}(X^TX)^{-1}}$$
+where in OLS, errors are assumed to be spherical, so $\Omega$ is just $\sigma^2 I$. \ 
+Now imagine that $\Omega$ is an $NT * NT$ block diagonal matrix with an $N * N$ matrix of contemporaneous covariances  $\Sigma$ along the diagonal, then we would have controlled for both the time-varying and spatial-varying components in the data. Specifically, this $\Sigma$ is given as [@BaileyKatz2011]:
+$$\hat{\Sigma_{i,j}} = \frac{\sum^{T_{i,j}}_{t=1} e_{i,j} e_{j,t}}{T_{i,j}}$$ 
+
+Notice how this $\sigma$ has both the time-varying components T and the spatial-varying compoentns I. If the data is balanced (i.e. no NAs!), then this can be simplified to just:
+$$\boldsymbol{\hat{\Sigma} = \frac{(E^T E)}{T}}$$
+so the estimated $\Omega$ can be given by:
+$$\boldsymbol{\hat{\Omega} = \hat{\Sigma} \otimes I_T}$$
+where the $\otimes$ is the kronecker product of two matrices.
+
+And there you have the PCSE:
+$$ PCSE = \boldsymbol{(X^TX)^{-1}X^T{\hat{\Omega}}X(X^TX)^{-1}}$$
+
+You can find the PCSEs easily via the `pcse` package.
+
+## Exercise: Economic growth model in 16 OECD nations from 1970 to 1984
+
+Original: @Alvarez1991 \ 
+
+Re-analysis: @Beck1993 \ 
+
+Example: @BaileyKatz2011 \ 
+
+Basic macro-economic and political variables from 16 OECD nations from 1970 to 1984 \ 
+
+Hypothesis: More growth with labor either very strong or very weak in both politics and market
+
+Variables:
+`year` = Year \ 
+
+`country` = Country \ 
+
+`growth` = economic growth \ 
+
+`lagg1` = lagged growth (instrument?) \ 
+
+`opengdp` = vulnerability to OECD demand \ 
+
+`openex` = OECD export \ 
+
+`openimp` = OECD import \ 
+
+`central` = labor organization index (constant for country!) \ 
+
+`leftc` = the fraction of cabinet portfolios held by left parties \ 
+
+`inter` = interaction central X leftc (not necessary) \ 
+
+
+Note: Difficult data, with more units (16) than time points (15) \ 
+
+Let's replicate the results of Alvarez et. al. with PCSEs. Load the `agl` dataset from the `pcse` package, and fit the model with appropriate standard errors. Compare the models with standard SEs and PCSEs. \ 
+
+```{r}
+library(tidyverse)
+library(pcse)
+data('agl')
+agl.lm <- lm(growth ~ lagg1 + opengdp + openex + openimp + central + leftc + leftc:central 
+                      + as.factor(year), data=agl)
+agl.pcse <- pcse(agl.lm, groupN = agl$country, groupT = agl$year)
+summary(agl.pcse)
+```
+
+Optional: you may also compare the results with classic panel regressors:
+```{r}
+library(plm)
+pagl <- pdata.frame(agl, c("country","year"))
+pagl$lagg1 <- NULL
+pagl$inter <- NULL
+head(pagl)
+
+#Pooled
+P.pooled <- plm(growth ~ opengdp + openex + openimp + central + leftc + leftc:central, 
+                data=pagl, model="pooling")
+summary(P.pooled)
+
+#FD (Y_{i,t} - Y{i,t-1})
+P.fd <- update(P.pooled, .~., model="fd")
+summary(P.fd)
+
+#Fixed Effects aka. the Within estimator (Y_{i,t} - \bar{Y_{i,t}})
+P.fe <- update(P.pooled, .~. , model="within")
+summary(P.fe)
+
+#Between model (only on \bar{Y_{i,t}}):
+p.bw <- update(P.pooled, .~. , model="between")
+summary(p.bw)
+```
+## Multi-level Models with an Autoregressive Correlation Structure
+Another way to model the TSCS nature of the data is to specify the correlation structure. This way we loosen the assumption that the correlation structure is constant over time. For example, we may specify the correlation structure to be that following the AR(1) process - i.e. only 1 lag of autocorrelation, or in other words, that the data at time $t$ is associated with data at time $t-1$. Note that you can only do this on data of a repeated measures design (i.e. same individual observed at different time points). The CSES example shown above would not be appropriate, as it is not the same individual being observed multiple times.\ 
+
+There are 2 ways to fit this kind of multi-level model. One can do this via the `nlme` package, or by going Bayesian via the `brms` package. Below we will cover an example using the `brms` approach.\ 
+
+## Example: GDP and Oil Rents, 1970-2019
+
+Load the `wbstats` package. This is the R API for the World Bank Indicators. Suppose you want to model GDP levels on oil rents and controlling for population, here the data essentially follows the TSCS structure and you would want to use multi-level models.\ 
+
+## Time Series Analysis: A very short Primer
+Before we dive into the mechanics of fitting the multi-level model, it is necessary to explain what we are giving to `brm()`. `brm()` will ask you two things when you want to specify an autogressive correlational structure: AR and MA. Below is a very brief description of what these two things are:\ 
+
+Autoregressive process (AR(p)) - The process under which the data at time $t$ is dependent on previous values, up to $p$ lags. For example, an AR(1) process refers to the fact that the data is dependent up to its value at $t-1$, an AR(3) process refers to the fact that the data is dependent on its previous values up to 3 lags: , i.e. at $t-1$, $t-2$ and $t-3$.\ 
+
+Moving Average (MA(q)) - The process under which the data at time $t$ is dependent on a combination of previous values and the white noise (i.e. Absolutely no serial correlation over time). One can understand this as the data being dependent on some exogenous shock up to $q$ lags. An MA(1) process refers to the fact that the data is dependent on some exogenous shock at $t-1$.\ 
+
+In the Time Series Analysis Literature, there's also an Integration process (I(d)). It refers to the fact that the mean of the time series is changing over time, up to an order of d. We will not be covering integration in this lab, but you will see this popping up in some of the plots we make below.\ 
+
+To account for serial correlation, we model on these three processes at the same time. This refers to the ARIMA(p,d,q) model, a very common tool for univariate time series analysis. To specify the autocorrelation structure, we need to know the parameters for AR(p) and MA(q).\ 
+
+First, let's take a look if autocorrelation is indeed present in the data. We first do this by converting the GDP levels of each country into a time series object. Then, we plot the autocorrelation function (ACF) and the partial autocorrelation function (PACF). For example, for the US:\ 
+
+```{r}
+library(wbstats)
+gdp <- wb(country="all",
+          indicator="NY.GDP.PCAP.CD",
+          startdate=1970,
+          enddate=2019) %>% select(iso3c, date, value) %>%  arrange(date)
+oil <- wb(country="all",
+          indicator="NY.GDP.PETR.RT.ZS",
+          startdate=1970,
+          enddate=2019) %>% select(iso3c, date, value) %>%  arrange(date)
+pop <- wb(country="all",
+          indicator="SP.POP.TOTL",
+          startdate=1970,
+          enddate=2019) %>% select(iso3c, date, value) %>%  arrange(date)
+
+wbdat <- gdp %>% right_join(oil, by=c("iso3c","date")) %>% right_join(pop, by=c("iso3c","date"))
+colnames(wbdat)[3:5] <- c("gdp","oilrents","pop")
+
+
+library(forecast)
+countries <- wbdat$iso3c %>% unique()
+ex1 <- wbdat  %>% filter(iso3c == "USA")
+ex1$date <- as.numeric(ex1$date)
+ex1 <- ex1 %>% arrange(date)
+gdp.ex1 <- ts(ex1, start=ex1$date[1], end=ex1$date[nrow(ex1)], frequency=1)
+gdp.ex1 <- na.omit(gdp.ex1)
+acf(gdp.ex1[,"gdp"]) #ACf for AR
+pacf(gdp.ex1[,"gdp"]) #PACF for MA'
+#arima.obj <- arima(growth.ex1[,"growth"], order=c(1,0,0))
+```
+The Autocorrelation Function (ACF) plot allows one to discover whether an AR process is at work, and the Partial Autocorrelation Function (PACF) plot allows one to discover the presence of MA processes. When you see "spikes" - i.e. values $> 0.5$ or $<-0.5$, that means there is a lot of autocorrelated residuals at that particular lag, and you should probably specify the model at that particular lag. For example, here the ACF spiked at lag =1, which suggests that AR(1) (i.e. Autocorrelation lagged by 1 year) is appropriate. In addition, we also see the PACF spiked at lag=1, which suggests that our serial correlation structure might have to incorporate both the autogressive and moving average processes (i.e. an ARIMA(1,0,1) process at the very least). \ 
+
+You should also see if the same picture emerges for other countries. Plot the ACFs and PACFs for up to 10 countries of your choice. See if ARIMA(1,0,1) is appropriate for all cases:
+```{r eval=F}
+for(i in 1:10){
+  d <- wbdat %>% filter(iso3c == countries[i])
+  d$date <- as.numeric(d$date)
+  d <- d %>% arrange(date)
+  ts.dat <- ts(d, start=1970, end=2019, frequency=1) %>% na.omit()
+  acf(ts.dat[,"gdp"])
+}
+
+for(i in 1:10){
+  d <- wbdat %>% filter(iso3c == countries[i])
+  d$date <- as.numeric(d$date)
+  d <- d %>% arrange(date)
+  ts.dat <- ts(d, start=1970, end=2019, frequency=1) %>% na.omit()
+  pacf(ts.dat[,"gdp"])
+}
+```
+
+Let's go with our speculation and fit an ARIMA(1,0,1) model on the US data. Then check the residuals by calling `checkresiduals()` to see if there are still spikes in the ACF. If the model fits well, then there should be no spikes in the ACF. If not, you should adjust the parameters in the ARIMA model.
+
+```{r}
+library(forecast)
+arima101 <- arima(gdp.ex1[,"gdp"], order = c(1,0,1), method="ML")
+checkresiduals(arima101)
+
+arima201 <- arima(gdp.ex1[,"gdp"], order = c(2,0,1), method="ML")
+checkresiduals(arima201)
+```
+
+To speed things up, you can use the `auto.arima()` function from the `forecast` package to help you find the ARIMA parameters automatically. It computes a series of plausible ARIMA parameters and return the best ARIMA model with the lowest information criteria scores.\ 
+
+
+It is intuitive that not all time series follow the same pattern, so you should check if this applies to other countries as well. Plot the auto.arima results for 10 countries of your choice and see what are the best parameters to use:
+
+```{r eval=F}
+for(i in 1:10){
+  d <- wbdat %>% filter(iso3c == countries[i])
+  d$date <- as.numeric(d$date)
+  d <- d %>% arrange(date)
+  ts.dat <- ts(d, start=1970, end=2019, frequency=1) %>% na.omit()
+  auto.arima(ts.dat[,"gdp"]) %>% checkresiduals()
+}
+```
+
+We have a bunch of countries following an AR(2) process and a bunch of them following MA(2). Some of them have integration, and some of them do not. This means that at the very least our correlation structure should be of ARIMA(2,0,2) to account for the autocorrelation and moving average processes up to 2 lags.\ 
+
+We are now ready to fit the model via `brms`. Regress GDP on Oil Rents and Logged Population levels. Specify the correlation structure using the `autocor` argument. It takes a formula for the autocorrelation structure. In our case, we will be using `arma(p=2, q=2)` since we need an ARMA(2,2) model (ignoring integration for now!):
+
+```{r}
+library(brms)
+
+wb.brm <- brm(gdp ~ oilrents + log(pop),
+          autocor= ~ brms::arma(time=date, gr=iso3c, p=2, q=2, cov=T),
+          family=gaussian(), data=na.omit(wbdat),
+          prior = c(
+    prior(normal(0,10), "b"),
+    prior(normal(0,50), "Intercept")),
+              chains=2, cores=5, iter=1000, warmup=100)
+```
+
+`brm` follows the Bayesian approach in fitting the models. If you call `summary()`, it provides a summary of population-level effects drawn which you can interpret as a regular regression table. The extra element in the table is the 95% Critical Interval values, which is similar to the Frequentist Confidence Intervals. It also gives the random effects at Country and Time under the "Family Specific Parameter" tab. \ 
+
+In addition, we can plot the posterior distribution of the $\beta$s by calling `plot()`:
+```{r}
+summary(wb.brm)
+plot(wb.brm, N=2, ask=F)
+```
+
+These essentially visualize what `summary()` has already told us: It seems like oil rents do not matter for GDP growth.\ 
+
+You may also use `conditional_effects()` to visualize the conditional effects easily.
+```{r}
+conditional_effects(wb.brm)
+```
+
+Now note that for time purposes, I have only let the model sample 1000 times from the posterior. This is far from sufficient! Below you should play around with different ARMA settings, as well as improving the number of draws from the posterior and the number of burn-in steps (e.g. 4000 is a good start). This would help reach model convergence since the MCMC algorithm needs to run for a while to achieve stationarity in the Markov Chain (and thus model convergence).
+
+# Reference

@@ -1,0 +1,36 @@
+% Encoding: UTF-8
+
+@Article{Tsai2017,
+  author    = {Tsung-han Tsai and Chang-chih Lin},
+  title     = {Modeling Guessing Components in the Measurement of Political Knowledge},
+  journal   = {Political Analysis},
+  year      = {2017},
+  volume    = {25},
+  number    = {4},
+  pages     = {483--504},
+  month     = {sep},
+  doi       = {10.1017/pan.2017.21},
+  file      = {:C\:\\Users\\Kyle\\Downloads\\modeling_guessing_components_in_the_measurement_of_political_knowledge.pdf:PDF},
+  publisher = {Cambridge University Press ({CUP})},
+}
+
+@Article{Treier2008,
+  author  = {Shawn Treier and Simon Jackman},
+  title   = {Democracy as a Latent Variable},
+  journal = {American Journal of Political Science},
+  year    = {2008},
+  volume  = {52},
+  number  = {1},
+  pages   = {201-217},
+  doi     = {ng,},
+  file    = {:C\:\\Users\\Kyle\\Downloads\\j.1540-5907.2007.00308.x.pdf:PDF},
+}
+
+@Article{Martin2002,
+  author  = {Martin, AD and KM Quinn},
+  title   = {Dynamic ideal point estimation via Markov chain Monte Carlo for the US Supreme Court, 1953–1999},
+  journal = {Political Analysis},
+  year    = {2002},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}
